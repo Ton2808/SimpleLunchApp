@@ -6,22 +6,8 @@ from typing import List
 
 router = APIRouter(prefix = '/store' , tags = ['store'])
 
-# Get all the store with their foods
-@router.get('/get' , description = "Get all the store" , response_model = List[Schemas.showStore])
-def getStore(db : Session = Depends(get_db)):
-    store = db.query(models.store).all()
-    return store
-
-# Get a specific store with it foods
-@router.get('/food/get' , description = "Get all the food of a store" , response_model = Schemas.showStore)
-def getFood(store_id : int = Query(... , description = "Please enter the store id") , db : Session = Depends(get_db)):
-    store = db.query(models.store).filter(models.store.id == store_id).first()
-    if not store:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No such store with id {store_id} found")
-    return store
-
 #Create a new store
-@router.post('/create'  , description="Create a new store" , response_model = Schemas.showStore)
+@router.post('/'  , description="Create a new store" , response_model = Schemas.showStore)
 def createStore(store: Schemas.store = Body(... , embed = True) , db : Session = Depends(get_db)):
     stores = db.query(models.store).filter(models.store.address == store.address).first()
     if stores:
@@ -33,7 +19,7 @@ def createStore(store: Schemas.store = Body(... , embed = True) , db : Session =
     return newStore
 
 # Add a new food for a store
-@router.post('/food/create' , description="Create a new food for a store" , response_model = Schemas.showFood)
+@router.post('/{store_id}/food/' , description="Create a new food for a store" , response_model = Schemas.showFood)
 def createFood(food: Schemas.food = Body(... , embed = True) , db : Session = Depends(get_db)):
     is_exist = db.query(models.store).filter(models.store.id == food.store_id).all()
     if len(is_exist) == 0:
@@ -44,8 +30,22 @@ def createFood(food: Schemas.food = Body(... , embed = True) , db : Session = De
     db.refresh(newFood)
     return newFood
 
+# Get all the store with their foods
+@router.get('/' , description = "Get all the store" , response_model = List[Schemas.showStore])
+def getStore(db : Session = Depends(get_db)):
+    store = db.query(models.store).all()
+    return store
+
+# Get a specific store with it foods
+@router.get('/{store_id}/food/' , description = "Get all the food of a store" , response_model = Schemas.showStore)
+def getFood(store_id : int = Query(... , description = "Please enter the store id") , db : Session = Depends(get_db)):
+    store = db.query(models.store).filter(models.store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No such store with id {store_id} found")
+    return store
+
 # Update the store information
-@router.put('/update' , description="Fix store information" , response_model=Schemas.showStore)
+@router.put('/{store_id}/' , description="Fix store information" , response_model=Schemas.showStore)
 def updateStore(storeUpdateId : int = Query(... , example = "1") , updateInfo: Schemas.store = Body(... , embed = True), db : Session = Depends(get_db)):
     store = db.query(models.store).filter(models.store.id == storeUpdateId)
     if db.query(models.store).filter(models.store.address == updateInfo.address).first():
@@ -57,7 +57,7 @@ def updateStore(storeUpdateId : int = Query(... , example = "1") , updateInfo: S
     return store.first()
 
 # Delete a store
-@router.delete('/delete' , description="Delete a store")
+@router.delete('/{store_id}/' , description="Delete a store")
 def deleteStore(storeDeleteId : int = Query(... , example = "1") , db : Session = Depends(get_db)):
     store = db.query(models.store).filter(models.store.id == storeDeleteId)
     if not store.first():
@@ -68,8 +68,8 @@ def deleteStore(storeDeleteId : int = Query(... , example = "1") , db : Session 
     return f"The store with id {storeDeleteId} has been deleted"
 
 # Delete a food
-@router.delete('/food/delete' , description="Delete a food in a store")
-def deleteStore(foodDeleteId : int = Query(... , example = 1) , db : Session = Depends(get_db)):
+@router.delete('/{food_id}/' , description="Delete a food in a store")
+def deleteFood(foodDeleteId : int = Query(... , example = 1) , db : Session = Depends(get_db)):
     food = db.query(models.food).filter(models.food.id == foodDeleteId)
     if not food.first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No such food with id {foodDeleteId} found")
